@@ -9,6 +9,13 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+const HERO_IMAGE_SRC =
+  "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=2100&q=80";
+
+/** Equal insets = small centered square, then opens to full frame (not a circle). */
+const HERO_SQUARE_START = "inset(49.35% 49.35% 49.35% 49.35%)";
+const HERO_SQUARE_END = "inset(0% 0% 0% 0%)";
+
 export default function Home() {
   const [selectedSpot, setSelectedSpot] = useState<TouristSpot | null>(null);
   const [activeImage, setActiveImage] = useState<string | null>(null);
@@ -36,10 +43,9 @@ export default function Home() {
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
-    gsap.set(".hero-background", { transformOrigin: "50% 88%" })
-
     const registerHeroBackgroundScroll = () => {
       if (effectCancelled) return
+      gsap.set(".hero-background", { transformOrigin: "50% 88%" })
       gsap.fromTo(
         ".hero-background",
         { scale: 1.2, yPercent: -4 },
@@ -57,29 +63,74 @@ export default function Home() {
       )
     }
 
+    const heroCopySlide = () =>
+      typeof window !== "undefined" ? Math.min(320, window.innerHeight * 0.38) : 220
+
     const heroTimeline = gsap.timeline()
 
+    gsap.set(".hero-background", { scale: 1.2, yPercent: -4, transformOrigin: "50% 88%" })
+
     if (prefersReducedMotion) {
+      gsap.set(".hero-reveal-square", { clipPath: HERO_SQUARE_END })
+      gsap.set(".hero-gradient", { opacity: 1 })
+      gsap.set([".hero-intro-welcome", ".hero-title", ".hero-tagline", ".scroll-indicator"], {
+        opacity: 1,
+        y: 0,
+      })
       registerHeroBackgroundScroll()
     } else {
+      gsap.set(".hero-reveal-square", { clipPath: HERO_SQUARE_START })
+      gsap.set(".hero-gradient", { opacity: 0 })
+
       heroTimeline.fromTo(
-        ".hero-background",
-        { scale: 1.34, yPercent: -9 },
+        ".hero-reveal-square",
+        { clipPath: HERO_SQUARE_START },
         {
-          scale: 1.2,
-          yPercent: -4,
-          duration: 1.6,
-          ease: "power4.out",
-          onComplete: registerHeroBackgroundScroll,
+          clipPath: HERO_SQUARE_END,
+          duration: 1.85,
+          ease: "power3.inOut",
+          onComplete: () => {
+            if (effectCancelled) return
+            gsap.set(".hero-reveal-square", { clipPath: "none" })
+            registerHeroBackgroundScroll()
+          },
         },
         0,
       )
-    }
 
-    heroTimeline
-      .fromTo(".hero-title", { y: 90, opacity: 0 }, { y: 0, opacity: 1, duration: 1.2 }, 0)
-      .fromTo(".hero-tagline", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.9 }, "-=0.6")
-      .fromTo(".scroll-indicator", { opacity: 0 }, { opacity: 1, duration: 1 }, "-=0.3")
+      heroTimeline.fromTo(
+        ".hero-gradient",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.85, ease: "power2.out" },
+        ">",
+      )
+
+      const yLift = heroCopySlide()
+      heroTimeline.fromTo(
+        ".hero-intro-welcome",
+        { y: yLift * 0.88, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.95, ease: "power4.out" },
+        ">+=0.12",
+      )
+      heroTimeline.fromTo(
+        ".hero-title",
+        { y: yLift, opacity: 0 },
+        { y: 0, opacity: 1, duration: 1.15, ease: "power4.out" },
+        ">+=0.1",
+      )
+      heroTimeline.fromTo(
+        ".hero-tagline",
+        { y: yLift * 0.7, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.88, ease: "power4.out" },
+        ">+=0.08",
+      )
+      heroTimeline.fromTo(
+        ".scroll-indicator",
+        { y: 48, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
+        ">+=0.08",
+      )
+    }
 
     gsap.utils.toArray<HTMLElement>(".reveal").forEach((element) => {
       gsap.fromTo(
@@ -582,7 +633,15 @@ export default function Home() {
 
     return () => {
       effectCancelled = true
-      gsap.killTweensOf(".hero-background")
+      gsap.killTweensOf([
+        ".hero-background",
+        ".hero-reveal-square",
+        ".hero-gradient",
+        ".hero-intro-welcome",
+        ".hero-title",
+        ".hero-tagline",
+        ".scroll-indicator",
+      ])
       window.removeEventListener("resize", refreshScrollTriggers)
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
     }
@@ -604,16 +663,23 @@ export default function Home() {
         </div>
       </div>
 
-      <section className="hero-section relative flex min-h-screen items-end overflow-hidden px-6 pb-20 pt-28 md:px-12">
-        <Image
-          src="https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=2100&q=80"
-          alt="Cinematic view of Villanueva"
-          fill
-          priority
-          className="hero-background object-cover will-change-transform"
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#090a0c] via-black/40 to-black/25" />
+      <section className="hero-section relative flex min-h-screen items-end overflow-hidden bg-black px-6 pb-20 pt-28 md:px-12">
+        <div className="hero-background absolute inset-0 z-[5] will-change-transform">
+          <div
+            className="hero-reveal-square absolute inset-0 will-change-[clip-path]"
+            style={{ clipPath: HERO_SQUARE_START }}
+          >
+            <Image
+              src={HERO_IMAGE_SRC}
+              alt="Cinematic view of Villanueva"
+              fill
+              priority
+              className="object-cover"
+              sizes="100vw"
+            />
+          </div>
+        </div>
+        <div className="hero-gradient pointer-events-none absolute inset-0 z-10 opacity-0 bg-gradient-to-t from-[#090a0c] via-black/40 to-black/25" />
         <p
           ref={titleMorphRef}
           aria-hidden="true"
@@ -622,15 +688,17 @@ export default function Home() {
           {place.name}
         </p>
         <div className="relative z-30 mx-auto w-full max-w-6xl space-y-6">
-          <p className="reveal text-sm uppercase tracking-[0.28em] text-amber-200/90">Welcome to</p>
+          <p className="hero-intro-welcome opacity-0 text-sm uppercase tracking-[0.28em] text-amber-200/90">
+            Welcome to
+          </p>
           <h1
             ref={heroTitleRef}
-            className="hero-title max-w-4xl text-5xl font-semibold leading-[1.05] will-change-transform md:text-8xl"
+            className="hero-title max-w-4xl text-5xl font-semibold leading-[1.05] opacity-0 will-change-transform md:text-8xl"
           >
             {place.name}
           </h1>
-          <p className="hero-tagline max-w-2xl text-lg text-zinc-200 md:text-2xl">{place.tagline}</p>
-          <div className="scroll-indicator flex items-center gap-3 pt-3 text-sm text-zinc-300">
+          <p className="hero-tagline max-w-2xl text-lg text-zinc-200 opacity-0 md:text-2xl">{place.tagline}</p>
+          <div className="scroll-indicator flex items-center gap-3 pt-3 text-sm text-zinc-300 opacity-0">
             <span className="h-px w-16 bg-zinc-300/80" />
             Scroll to Explore
           </div>
