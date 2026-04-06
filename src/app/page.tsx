@@ -33,6 +33,29 @@ export default function Home() {
   const touristLabelBottomRightRef = useRef<HTMLParagraphElement | null>(null);
   const touristFeaturedCardRef = useRef<HTMLDivElement | null>(null);
   const touristDescriptionRef = useRef<HTMLParagraphElement | null>(null);
+  const cultureSectionRef = useRef<HTMLElement | null>(null);
+  const cultureHeadingRef = useRef<HTMLDivElement | null>(null);
+  const cultureCardsTrackRef = useRef<HTMLDivElement | null>(null);
+  const cultureHighlights = [
+    {
+      title: "Lantern River Festival",
+      description: "Experience authentic community traditions passed through generations.",
+      image:
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1400&q=80",
+    },
+    {
+      title: "Bamboo Weaving Village",
+      description: "Meet local artisans and watch handwoven craft techniques in real time.",
+      image:
+        "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1400&q=80",
+    },
+    {
+      title: "Sunrise Drum Ceremony",
+      description: "Hear morning rhythms that mark the town's oldest cultural ritual.",
+      image:
+        "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=1400&q=80",
+    },
+  ] as const;
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -623,6 +646,118 @@ export default function Home() {
         );
     }
 
+    const cultureSectionElement = cultureSectionRef.current;
+    const cultureHeadingElement = cultureHeadingRef.current;
+    const cultureCardsTrackElement = cultureCardsTrackRef.current;
+
+    if (cultureSectionElement && cultureHeadingElement && cultureCardsTrackElement) {
+      const cultureCards = Array.from(cultureCardsTrackElement.querySelectorAll<HTMLElement>(".culture-card"));
+      const prefersReducedMotionNow =
+        typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (prefersReducedMotionNow) {
+        gsap.set(cultureHeadingElement, { autoAlpha: 1, y: 0 });
+        gsap.set(cultureCards, { autoAlpha: 1, y: 0, scale: 1, rotate: 0 });
+      } else if (cultureCards.length > 0) {
+        gsap.set(cultureCardsTrackElement, { perspective: 1200 });
+        gsap.set(cultureHeadingElement, { autoAlpha: 1, y: 0 });
+        gsap.set(cultureCards, {
+          autoAlpha: 1,
+          y: (index) => index * 18,
+          x: 0,
+          scale: (index) => 1 - index * 0.028,
+          rotate: 0,
+          rotateX: (index) => index * -1.15,
+          filter: (index) => (index === 0 ? "blur(0px)" : "blur(0.35px)"),
+          transformOrigin: "50% 85%",
+          zIndex: (index) => cultureCards.length - index,
+          willChange: "transform, opacity, filter",
+          force3D: true,
+        });
+
+        const cultureTimeline = gsap.timeline({
+          scrollTrigger: {
+            trigger: cultureSectionElement,
+            start: "top top",
+            end: `+=${145 + cultureCards.length * 84}%`,
+            scrub: 1.55,
+            pin: true,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+          },
+        });
+
+        cultureTimeline.set(cultureHeadingElement, {
+          autoAlpha: 1,
+          y: 0,
+        });
+
+        cultureCards.forEach((card, index) => {
+          const inactiveCards = cultureCards.filter((_, i) => i !== index);
+          const stackOffset = Math.max(0, index - 1);
+          cultureTimeline
+            .to(
+              card,
+              {
+                autoAlpha: 1,
+                y: 0,
+                x: 0,
+                scale: 1,
+                rotateX: 0,
+                filter: "blur(0px)",
+                duration: 1.02,
+                ease: "power2.out",
+                zIndex: cultureCards.length + 5,
+              },
+              index === 0 ? ">+=0.06" : ">+=0.1",
+            )
+            .to(
+              inactiveCards,
+              {
+                autoAlpha: 0.5,
+                scale: (inactiveIndex) => 0.962 - inactiveIndex * 0.01,
+                y: (inactiveIndex) => 12 + inactiveIndex * 8,
+                x: 0,
+                rotateX: (inactiveIndex) => -(inactiveIndex + 1) * 0.9,
+                filter: "blur(0.25px)",
+                duration: 0.84,
+                ease: "power1.out",
+                overwrite: "auto",
+              },
+              "<+=0.02",
+            )
+            .to(
+              card,
+              {
+                autoAlpha: 1,
+                scale: 1,
+                y: 0,
+                x: 0,
+                rotateX: 0,
+                filter: "blur(0px)",
+                duration: 0.58,
+                ease: "power1.out",
+                overwrite: "auto",
+              },
+              "<+=0.02",
+            )
+            .to(
+              card,
+              {
+                autoAlpha: index === cultureCards.length - 1 ? 1 : 0.72,
+                y: index === cultureCards.length - 1 ? 0 : -16 - stackOffset * 6,
+                scale: index === cultureCards.length - 1 ? 1 : 0.988,
+                rotateX: index === cultureCards.length - 1 ? 0 : -0.65,
+                filter: index === cultureCards.length - 1 ? "blur(0px)" : "blur(0.18px)",
+                duration: 0.86,
+                ease: "power1.inOut",
+              },
+              ">+=0.08",
+            );
+        });
+      }
+    }
+
     const refreshScrollTriggers = () => {
       requestAnimationFrame(() => {
         ScrollTrigger.refresh()
@@ -819,20 +954,40 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden border-y border-white/10 bg-gradient-to-b from-[#171920] to-[#121319] py-20 md:py-28">
-        <div className="mx-auto max-w-6xl space-y-10 px-6 md:px-12">
-          <SectionHeading
-            eyebrow="Culture & People"
-            title="Festivals, craft traditions, and warm local life."
-            description="The town comes alive each full moon with music, lantern parades, and artisan markets."
-          />
-          <div className="reveal grid gap-6 md:grid-cols-3">
-            {["Lantern River Festival", "Bamboo Weaving Village", "Sunrise Drum Ceremony"].map((item) => (
-              <article key={item} className="rounded-xl border border-white/10 bg-black/20 p-5">
-                <h3 className="text-lg font-medium text-amber-100">{item}</h3>
-                <p className="mt-2 text-sm text-zinc-300">
-                  Experience authentic community traditions passed through generations.
-                </p>
+      <section
+        ref={cultureSectionRef}
+        className="relative overflow-hidden border-y border-white/10 bg-gradient-to-b from-[#171920] to-[#121319] py-20 md:py-28"
+      >
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(251,191,36,0.12),transparent_40%),radial-gradient(circle_at_70%_80%,rgba(59,130,246,0.14),transparent_45%)]" />
+        <div className="relative mx-auto max-w-6xl space-y-10 px-6 md:px-12">
+          <div ref={cultureHeadingRef}>
+            <SectionHeading
+              eyebrow="Culture & People"
+              title="Festivals, craft traditions, and warm local life."
+              description="The town comes alive each full moon with music, lantern parades, and artisan markets."
+            />
+          </div>
+          <div ref={cultureCardsTrackRef} className="relative mx-auto h-[36rem] w-full max-w-4xl md:h-[39rem]">
+            {cultureHighlights.map((item) => (
+              <article
+                key={item.title}
+                className="culture-card absolute inset-x-0 top-0 mx-auto w-full overflow-hidden rounded-xl border border-zinc-800 bg-[#101218] shadow-[0_18px_60px_rgba(0,0,0,0.36)]"
+              >
+                <div className="relative h-64 w-full md:h-72">
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    fill
+                    loading="lazy"
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+                </div>
+                <div className="p-5">
+                  <h3 className="text-lg font-medium text-amber-100">{item.title}</h3>
+                  <p className="mt-2 text-sm text-zinc-300">{item.description}</p>
+                </div>
               </article>
             ))}
           </div>
